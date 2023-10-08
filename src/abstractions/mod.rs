@@ -1,0 +1,9 @@
+pub mod author;
+pub mod category;
+pub mod enclosure;
+pub mod entry;
+pub mod generator;
+pub mod guid;
+pub mod link;
+pub mod source;
+pub mod text;

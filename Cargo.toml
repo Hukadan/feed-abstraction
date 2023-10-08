@@ -1,0 +1,11 @@
+[package]
+name = "feed_abstraction"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+atom_syndication = "0.12.2"
+rss = "2.0.6"
+url = "2.4.1"
