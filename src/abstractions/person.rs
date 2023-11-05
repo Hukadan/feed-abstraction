@@ -1,13 +1,13 @@
-use atom_syndication::Person;
+use atom_syndication::Person as AtomPerson;
 
 #[derive(Clone, Default, Debug)]
-pub struct Author {
+pub struct Person {
     pub name: String,
     pub email: Option<String>,
     pub uri: Option<String>,
 }
 
-impl From<String> for Author {
+impl From<String> for Person {
     fn from(value: String) -> Self {
         Self {
             name: value,
@@ -16,8 +16,8 @@ impl From<String> for Author {
     }
 }
 
-impl From<Author> for String {
-    fn from(value: Author) -> Self {
+impl From<Person> for String {
+    fn from(value: Person) -> Self {
         match value.email {
             Some(email) => format!("{} ({})", email, value.name),
             None => value.name,
@@ -25,8 +25,8 @@ impl From<Author> for String {
     }
 }
 
-impl From<Person> for Author {
-    fn from(value: Person) -> Self {
+impl From<AtomPerson> for Person {
+    fn from(value: AtomPerson) -> Self {
         Self {
             name: value.name,
             email: value.email,
@@ -35,8 +35,8 @@ impl From<Person> for Author {
     }
 }
 
-impl From<Author> for Person {
-    fn from(value: Author) -> Self {
+impl From<Person> for AtomPerson {
+    fn from(value: Person) -> Self {
         Self {
             name: value.name,
             email: value.email,

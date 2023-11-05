@@ -1,23 +1,29 @@
 use crate::abstractions::{
-    author::Author, category::Category, enclosure::Enclosure, guid::Guid, link::Link, text::Text,
+    category::Category, content::Content, enclosure::Enclosure, guid::Guid, link::Link,
+    person::Person, source::Source, text::Text,
 };
 use atom_syndication::{
     Category as AtomCategory, Entry as AtomEntry, Link as AtomLink, Person as AtomAuthor,
     Text as AtomText,
 };
+use chrono::{DateTime, FixedOffset};
 use rss::{Category as RssCategory, Enclosure as RssEnclosure, Guid as RssGuid, Item as RssEntry};
 
 #[derive(Clone, Debug, Default)]
 pub struct Entry {
     pub title: Text,
+    pub published: Option<DateTime<FixedOffset>>,
+    pub updated: Option<DateTime<FixedOffset>>,
     pub guid: Guid,
     pub links: Vec<Link>,
     pub summary: Option<Text>,
-    pub authors: Vec<Author>,
-    pub feed_authors: Option<Vec<Author>>,
+    pub authors: Vec<Person>,
+    pub feed_authors: Option<Vec<Person>>,
     pub categories: Vec<Category>,
     pub comments: Option<String>,
     pub enclosure: Option<Enclosure>,
+    pub source: Option<Source>,
+    pub content: Option<Content>,
 }
 
 impl From<RssEntry> for Entry {
@@ -37,12 +43,19 @@ impl From<RssEntry> for Entry {
             None => vec![Link::default()],
         };
         let summary: Option<Text> = value.description.map(|s| s.into());
-        let authors: Vec<Author> = match value.author {
+        let authors: Vec<Person> = match value.author {
             Some(text) => text.split("; ").map(|s| s.to_string().into()).collect(),
             None => vec![],
         };
         let categories: Vec<Category> = value.categories.into_iter().map(|s| s.into()).collect();
         let enclosure: Option<Enclosure> = value.enclosure.map(|s| s.into());
+        let published: Option<DateTime<FixedOffset>> = match value.pub_date {
+            Some(str_date) => match DateTime::<FixedOffset>::parse_from_rfc2822(&str_date) {
+                Ok(re) => Some(re),
+                ParseError => None,
+            },
+            None => None,
+        };
         Self {
             title,
             guid,
@@ -54,6 +67,11 @@ impl From<RssEntry> for Entry {
             categories,
             comments: value.comments,
             enclosure,
+            source: value.source.map(|s| s.into()),
+            content: value.content.map(|s| s.into()),
+            published,
+            // no equivalent field on RSS item
+            updated: None,
         }
     }
 }
@@ -75,6 +93,7 @@ impl From<Entry> for RssEntry {
         } else {
             Some(value.links[0].clone().into())
         };
+        let description: Option<String> = value.summary.map(|s| s.into());
         let author: Option<String> = if value.authors.is_empty() {
             None
         } else {
@@ -85,12 +104,16 @@ impl From<Entry> for RssEntry {
         let enclosure: Option<RssEnclosure> = value.enclosure.map(|s| s.into());
         Self {
             title,
+            description,
             guid,
             link,
             author,
             categories,
             comments: value.comments,
             enclosure,
+            content: value.content.map(|s| s.into()),
+            source: value.source.map(|s| s.into()),
+            pub_date: value.published.map(|s| s.to_rfc2822()),
             ..Default::default()
         }
     }
@@ -99,8 +122,8 @@ impl From<Entry> for RssEntry {
 impl From<AtomEntry> for Entry {
     fn from(entry: AtomEntry) -> Self {
         let links: Vec<Link> = entry.links.into_iter().map(|s| s.into()).collect();
-        let authors: Vec<Author> = entry.contributors.into_iter().map(|s| s.into()).collect();
-        let feed_authors: Option<Vec<Author>> = if entry.authors.is_empty() {
+        let authors: Vec<Person> = entry.contributors.into_iter().map(|s| s.into()).collect();
+        let feed_authors: Option<Vec<Person>> = if entry.authors.is_empty() {
             None
         } else {
             Some(entry.authors.into_iter().map(|s| s.into()).collect())
@@ -118,6 +141,10 @@ impl From<AtomEntry> for Entry {
             // Do not exist in Atom entry
             comments: None,
             enclosure: None,
+            source: entry.source.map(|s| s.into()),
+            content: entry.content.map(|s| s.into()),
+            published: entry.published,
+            updated: Some(entry.updated),
         }
     }
 }
@@ -134,6 +161,10 @@ impl From<Entry> for AtomEntry {
         let summary: Option<AtomText> = value.summary.map(|s| s.into());
         let categories: Vec<AtomCategory> =
             value.categories.into_iter().map(|s| s.into()).collect();
+        let updated = match value.updated {
+            Some(d) => d,
+            None => DateTime::<FixedOffset>::default(),
+        };
         Self {
             title: value.title.into(),
             id: value.guid.into(),
@@ -142,6 +173,10 @@ impl From<Entry> for AtomEntry {
             authors,
             contributors,
             categories,
+            source: value.source.map(|s| s.into()),
+            content: value.content.map(|s| s.into()),
+            published: value.published,
+            updated,
             ..Default::default()
         }
     }
