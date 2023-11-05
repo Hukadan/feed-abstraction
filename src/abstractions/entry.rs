@@ -1,13 +1,28 @@
+use std::collections::BTreeMap;
+
 use crate::abstractions::{
-    category::Category, content::Content, enclosure::Enclosure, guid::Guid, link::Link,
-    person::Person, source::Source, text::Text,
+    category::Category,
+    content::Content,
+    enclosure::Enclosure,
+    extension::{Extension, ExtensionMap},
+    guid::Guid,
+    link::Link,
+    person::Person,
+    source::Source,
+    text::Text,
 };
 use atom_syndication::{
+    extension::{Extension as AtomExtension, ExtensionMap as AtomExtensionMap},
     Category as AtomCategory, Entry as AtomEntry, Link as AtomLink, Person as AtomAuthor,
     Text as AtomText,
 };
 use chrono::{DateTime, FixedOffset};
-use rss::{Category as RssCategory, Enclosure as RssEnclosure, Guid as RssGuid, Item as RssEntry};
+use rss::{
+    extension::dublincore::DublinCoreExtension,
+    extension::itunes::ITunesItemExtension,
+    extension::{Extension as RssExtension, ExtensionMap as RssExtensionMap},
+    Category as RssCategory, Enclosure as RssEnclosure, Guid as RssGuid, Item as RssEntry,
+};
 
 #[derive(Clone, Debug, Default)]
 pub struct Entry {
@@ -24,6 +39,10 @@ pub struct Entry {
     pub enclosure: Option<Enclosure>,
     pub source: Option<Source>,
     pub content: Option<Content>,
+    pub rights: Option<Text>,
+    pub extensions: ExtensionMap,
+    pub itunes_ext: Option<ITunesItemExtension>,
+    pub dublin_core_ext: Option<DublinCoreExtension>,
 }
 
 impl From<RssEntry> for Entry {
@@ -52,9 +71,24 @@ impl From<RssEntry> for Entry {
         let published: Option<DateTime<FixedOffset>> = match value.pub_date {
             Some(str_date) => match DateTime::<FixedOffset>::parse_from_rfc2822(&str_date) {
                 Ok(re) => Some(re),
-                ParseError => None,
+                _ => None,
             },
             None => None,
+        };
+        let extensions: ExtensionMap = {
+            let mut bt1: BTreeMap<String, BTreeMap<String, Vec<Extension>>> = BTreeMap::new();
+            for (key, value) in value.extensions.into_iter() {
+                let mut bt2: BTreeMap<String, Vec<Extension>> = BTreeMap::new();
+                for (key1, value1) in value.into_iter() {
+                    let mut ve: Vec<Extension> = Vec::new();
+                    for v in value1 {
+                        ve.push(v.into());
+                    }
+                    bt2.insert(key1, ve);
+                }
+                bt1.insert(key, bt2);
+            }
+            bt1
         };
         Self {
             title,
@@ -72,6 +106,10 @@ impl From<RssEntry> for Entry {
             published,
             // no equivalent field on RSS item
             updated: None,
+            rights: None,
+            extensions,
+            itunes_ext: value.itunes_ext,
+            dublin_core_ext: value.dublin_core_ext,
         }
     }
 }
@@ -102,6 +140,21 @@ impl From<Entry> for RssEntry {
         };
         let categories: Vec<RssCategory> = value.categories.into_iter().map(|s| s.into()).collect();
         let enclosure: Option<RssEnclosure> = value.enclosure.map(|s| s.into());
+        let extensions: RssExtensionMap = {
+            let mut bt1: BTreeMap<String, BTreeMap<String, Vec<RssExtension>>> = BTreeMap::new();
+            for (key, value) in value.extensions.into_iter() {
+                let mut bt2: BTreeMap<String, Vec<RssExtension>> = BTreeMap::new();
+                for (key1, value1) in value.into_iter() {
+                    let mut ve: Vec<RssExtension> = Vec::new();
+                    for v in value1 {
+                        ve.push(v.into());
+                    }
+                    bt2.insert(key1, ve);
+                }
+                bt1.insert(key, bt2);
+            }
+            bt1
+        };
         Self {
             title,
             description,
@@ -114,7 +167,9 @@ impl From<Entry> for RssEntry {
             content: value.content.map(|s| s.into()),
             source: value.source.map(|s| s.into()),
             pub_date: value.published.map(|s| s.to_rfc2822()),
-            ..Default::default()
+            extensions,
+            itunes_ext: value.itunes_ext,
+            dublin_core_ext: value.dublin_core_ext,
         }
     }
 }
@@ -130,6 +185,21 @@ impl From<AtomEntry> for Entry {
         };
         let summary: Option<Text> = entry.summary.map(|s| s.into());
         let categories: Vec<Category> = entry.categories.into_iter().map(|s| s.into()).collect();
+        let extensions: ExtensionMap = {
+            let mut bt1: BTreeMap<String, BTreeMap<String, Vec<Extension>>> = BTreeMap::new();
+            for (key, value) in entry.extensions.into_iter() {
+                let mut bt2: BTreeMap<String, Vec<Extension>> = BTreeMap::new();
+                for (key1, value1) in value.into_iter() {
+                    let mut ve: Vec<Extension> = Vec::new();
+                    for v in value1 {
+                        ve.push(v.into());
+                    }
+                    bt2.insert(key1, ve);
+                }
+                bt1.insert(key, bt2);
+            }
+            bt1
+        };
         Self {
             title: entry.title.into(),
             guid: entry.id.into(),
@@ -145,6 +215,10 @@ impl From<AtomEntry> for Entry {
             content: entry.content.map(|s| s.into()),
             published: entry.published,
             updated: Some(entry.updated),
+            rights: entry.rights.map(|s| s.into()),
+            extensions,
+            itunes_ext: None,
+            dublin_core_ext: None,
         }
     }
 }
@@ -165,6 +239,21 @@ impl From<Entry> for AtomEntry {
             Some(d) => d,
             None => DateTime::<FixedOffset>::default(),
         };
+        let extensions: AtomExtensionMap = {
+            let mut bt1: BTreeMap<String, BTreeMap<String, Vec<AtomExtension>>> = BTreeMap::new();
+            for (key, value) in value.extensions.into_iter() {
+                let mut bt2: BTreeMap<String, Vec<AtomExtension>> = BTreeMap::new();
+                for (key1, value1) in value.into_iter() {
+                    let mut ve: Vec<AtomExtension> = Vec::new();
+                    for v in value1 {
+                        ve.push(v.into());
+                    }
+                    bt2.insert(key1, ve);
+                }
+                bt1.insert(key, bt2);
+            }
+            bt1
+        };
         Self {
             title: value.title.into(),
             id: value.guid.into(),
@@ -177,7 +266,8 @@ impl From<Entry> for AtomEntry {
             content: value.content.map(|s| s.into()),
             published: value.published,
             updated,
-            ..Default::default()
+            rights: value.rights.map(|s| s.into()),
+            extensions,
         }
     }
 }

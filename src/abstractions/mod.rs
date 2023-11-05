@@ -2,6 +2,7 @@ pub mod category;
 pub mod content;
 pub mod enclosure;
 pub mod entry;
+pub mod extension;
 pub mod generator;
 pub mod guid;
 pub mod link;
