@@ -75,6 +75,14 @@ mod tests {
         assert_eq!(per1, per2);
     }
     #[test]
+    fn atom_no_loss() {
+        let per1: AtomPerson = new_atom_person();
+        let per2 = per1.clone();
+        let per2: Person = per2.into();
+        let per2: AtomPerson = per2.into();
+        assert_eq!(per1, per2)
+    }
+    #[test]
     fn abstract_to_atom_equal() {
         let per1: AtomPerson = new_person().into();
         let per2 = new_atom_person();

@@ -112,6 +112,13 @@ mod tests {
         assert_eq!(cont1, cont2)
     }
     #[test]
+    fn atom_no_loss() {
+        let cont1: AtomContent = new_atom_content();
+        let cont2: Content = cont1.clone().into();
+        let cont2: AtomContent = cont2.into();
+        assert_eq!(cont1, cont2)
+    }
+    #[test]
     fn abstract_to_string_equal() {
         let cont1: String = new_content().into();
         let cont2 = String::from("Value");
