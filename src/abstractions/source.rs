@@ -1,12 +1,14 @@
 use super::{category::Category, generator::Generator, link::Link, person::Person, text::Text};
 use atom_syndication::{FixedDateTime, Source as AtomSource, Text as AtomText};
+use chrono::{DateTime, FixedOffset};
 use rss::Source as RssSource;
+use std::str::FromStr;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Source {
     pub title: Option<Text>,
     pub id: Option<String>,
-    pub updated: Option<String>,
+    pub updated: Option<DateTime<FixedOffset>>,
     pub authors: Vec<Person>,
     pub categories: Vec<Category>,
     pub contributors: Vec<Person>,
@@ -20,7 +22,13 @@ pub struct Source {
 
 impl From<RssSource> for Source {
     fn from(value: RssSource) -> Self {
-        let links: Vec<Link> = vec![value.url.into()];
+        // If the url string is empty, generate
+        // an empty vector
+        let links: Vec<Link> = if value.url.is_empty() {
+            vec![]
+        } else {
+            vec![value.url.into()]
+        };
         let title: Option<Text> = value.title.map(|s| s.into());
         Self {
             title,
@@ -32,6 +40,8 @@ impl From<RssSource> for Source {
 
 impl From<Source> for RssSource {
     fn from(value: Source) -> Self {
+        // even if the links vector is empty we
+        // have to provide a string
         let url: String = if value.links.is_empty() {
             "".into()
         } else {
@@ -44,16 +54,49 @@ impl From<Source> for RssSource {
     }
 }
 
+impl Default for Source {
+    fn default() -> Self {
+        Source {
+            title: Option::default(),
+            id: Option::default(),
+            updated: Some(DateTime::<FixedOffset>::from_str("1970-01-01T00:00:00Z").unwrap()),
+            authors: Vec::default(),
+            categories: Vec::default(),
+            contributors: Vec::default(),
+            generator: Option::default(),
+            icon: Option::default(),
+            links: Vec::default(),
+            rights: Option::default(),
+            subtitle: Option::default(),
+            logo: Option::default(),
+        }
+    }
+}
+
 impl From<AtomSource> for Source {
     fn from(value: AtomSource) -> Self {
+        // Only need to store the value if it is
+        // different from the default value
+        let title: Option<Text> = if value.title == AtomText::default() {
+            None
+        } else {
+            Some(value.title.into())
+        };
+        // Only need to store the value if it is
+        // different from empty string
+        let id: Option<String> = if value.id.is_empty() {
+            None
+        } else {
+            Some(value.id.into())
+        };
         Self {
-            title: Some(value.title.into()),
-            id: Some(value.id),
-            updated: Some(value.updated.to_string()),
+            title,
+            id,
+            updated: Some(value.updated),
             authors: value.authors.into_iter().map(|s| s.into()).collect(),
             categories: value.categories.into_iter().map(|s| s.into()).collect(),
             contributors: value.contributors.into_iter().map(|s| s.into()).collect(),
-            generator: None,
+            generator: value.generator.map(|s| s.into()),
             icon: value.icon,
             links: value.links.into_iter().map(|s| s.into()).collect(),
             rights: value.rights.map(|s| s.into()),
@@ -76,11 +119,7 @@ impl From<Source> for AtomSource {
             "".into()
         };
         let updated: FixedDateTime = if let Some(s) = value.updated {
-            if let Ok(d) = FixedDateTime::parse_from_rfc3339(&s) {
-                d
-            } else {
-                FixedDateTime::default()
-            }
+            s
         } else {
             FixedDateTime::default()
         };
@@ -98,5 +137,82 @@ impl From<Source> for AtomSource {
             rights: value.rights.map(|s| s.into()),
             subtitle: value.subtitle.map(|s| s.into()),
         }
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+
+    use super::*;
+
+    pub(crate) fn new_source() -> Source {
+        Source {
+            title: Some(crate::abstractions::text::tests::new_text()),
+            id: Some("id".into()),
+            updated: Some(DateTime::default()),
+            authors: vec![crate::abstractions::person::tests::new_person()],
+            categories: vec![crate::abstractions::category::tests::new_category()],
+            contributors: vec![crate::abstractions::person::tests::new_person()],
+            generator: Some(crate::abstractions::generator::tests::new_generator()),
+            icon: Some("Icon".into()),
+            links: vec![crate::abstractions::link::tests::new_link()],
+            rights: Some(crate::abstractions::text::tests::new_text()),
+            subtitle: Some(crate::abstractions::text::tests::new_text()),
+            logo: Some("Logo".into()),
+        }
+    }
+
+    pub(crate) fn new_atom_source() -> AtomSource {
+        AtomSource {
+            title: crate::abstractions::text::tests::new_atom_text(),
+            id: "id".into(),
+            updated: DateTime::default(),
+            authors: vec![crate::abstractions::person::tests::new_atom_person()],
+            categories: vec![crate::abstractions::category::tests::new_atom_category()],
+            contributors: vec![crate::abstractions::person::tests::new_atom_person()],
+            generator: Some(crate::abstractions::generator::tests::new_atom_generator()),
+            icon: Some("Icon".into()),
+            links: vec![crate::abstractions::link::tests::new_atom_link()],
+            logo: Some("Logo".into()),
+            rights: Some(crate::abstractions::text::tests::new_atom_text()),
+            subtitle: Some(crate::abstractions::text::tests::new_atom_text()),
+        }
+    }
+
+    #[test]
+    fn default_abstract_to_rss_equal() {
+        let src1: RssSource = Source::default().into();
+        let src2 = RssSource::default();
+        assert_eq!(src1, src2);
+    }
+    #[test]
+    fn default_rss_to_abstract_equal() {
+        let src1: Source = RssSource::default().into();
+        let src2 = Source::default();
+        assert_eq!(src1, src2);
+    }
+    #[test]
+    fn default_abstract_to_atom_equal() {
+        let src1: AtomSource = Source::default().into();
+        let src2 = AtomSource::default();
+        assert_eq!(src1, src2);
+    }
+    #[test]
+    fn default_atom_to_abstract_equal() {
+        let src1: Source = AtomSource::default().into();
+        let src2 = Source::default();
+        assert_eq!(src1, src2);
+    }
+    #[test]
+    fn abstract_to_atom_equal() {
+        let src1: AtomSource = new_source().into();
+        let src2 = new_atom_source();
+        assert_eq!(src1, src2);
+    }
+    #[test]
+    fn atom_to_abstract_equal() {
+        let src1: Source = new_atom_source().into();
+        let src2 = new_source();
+        assert_eq!(src1, src2);
     }
 }

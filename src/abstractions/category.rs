@@ -59,7 +59,7 @@ impl From<Category> for AtomCategory {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     pub fn new_category() -> Category {
         Category {

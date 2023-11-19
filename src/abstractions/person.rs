@@ -46,7 +46,7 @@ impl From<Person> for AtomPerson {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     pub fn new_person() -> Person {
         Person {

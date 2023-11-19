@@ -1,6 +1,6 @@
 use atom_syndication::{Text as AtomText, TextType as AtomTextType};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TextType {
     #[default]
     Text,
@@ -28,7 +28,7 @@ impl From<TextType> for AtomTextType {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Text {
     pub value: String,
     pub base: Option<String>,
@@ -72,5 +72,102 @@ impl From<Text> for AtomText {
             lang: value.lang,
             r#type: value.text_type.into(),
         }
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+    pub fn new_text_type() -> TextType {
+        TextType::Html
+    }
+    pub fn new_atom_text_type() -> AtomTextType {
+        AtomTextType::Html
+    }
+    pub fn new_text() -> Text {
+        Text {
+            value: "Value".into(),
+            base: Some("Base".into()),
+            lang: Some("Lang".into()),
+            text_type: TextType::Html,
+        }
+    }
+    pub fn new_atom_text() -> AtomText {
+        AtomText {
+            value: "Value".into(),
+            base: Some("Base".into()),
+            lang: Some("Lang".into()),
+            r#type: AtomTextType::Html,
+        }
+    }
+    #[test]
+    fn default_abstract_to_atom_equal_text_type() {
+        let texttype1: AtomTextType = TextType::default().into();
+        let texttype2 = AtomTextType::default();
+        assert_eq!(texttype1, texttype2);
+    }
+    #[test]
+    fn default_atom_to_abstract_equal_text_type() {
+        let texttype1: TextType = AtomTextType::default().into();
+        let texttype2 = TextType::default();
+        assert_eq!(texttype1, texttype2);
+    }
+    #[test]
+    fn abstract_to_atom_equal_text_type() {
+        let texttype1: AtomTextType = new_text_type().into();
+        let texttype2 = new_atom_text_type();
+        assert_eq!(texttype1, texttype2);
+    }
+    #[test]
+    fn atom_to_abstract_equal_text_type() {
+        let texttype1: TextType = new_atom_text_type().into();
+        let texttype2 = new_text_type();
+        assert_eq!(texttype1, texttype2);
+    }
+    #[test]
+    fn default_abstract_to_atom_equal_text() {
+        let text1: AtomText = Text::default().into();
+        let text2 = AtomText::default();
+        assert_eq!(text1, text2);
+    }
+    #[test]
+    fn default_atom_to_abstract_equal_text() {
+        let text1: Text = AtomText::default().into();
+        let text2 = Text::default();
+        assert_eq!(text1, text2);
+    }
+    #[test]
+    fn abstract_to_atom_equal_text() {
+        let text1: AtomText = new_text().into();
+        let text2 = new_atom_text();
+        assert_eq!(text1, text2);
+    }
+    #[test]
+    fn atom_to_abstract_equal_text() {
+        let text1: Text = new_atom_text().into();
+        let text2 = new_text();
+        assert_eq!(text1, text2);
+    }
+    #[test]
+    fn atom_no_loss() {
+        let text1: AtomText = new_atom_text();
+        let text2 = text1.clone();
+        let text2: Text = text2.into();
+        let text2: AtomText = text2.into();
+        assert_eq!(text1, text2)
+    }
+    #[test]
+    fn abstract_to_string_equal() {
+        let per: String = new_text().into();
+        assert_eq!(per, String::from("Value"));
+    }
+    #[test]
+    fn string_to_abstact_equal() {
+        let text1 = Text {
+            value: String::from("Value"),
+            ..Default::default()
+        };
+        let text2: Text = String::from("Value").into();
+        assert_eq!(text1, text2);
     }
 }

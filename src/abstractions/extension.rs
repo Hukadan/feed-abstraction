@@ -2,7 +2,7 @@ use atom_syndication::extension::Extension as AtomExtension;
 use rss::extension::Extension as RssExtension;
 use std::collections::BTreeMap;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Extension {
     pub name: String,
     pub value: Option<String>,

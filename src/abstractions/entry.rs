@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, str::FromStr};
 
 use crate::abstractions::{
     category::Category,
@@ -24,7 +24,7 @@ use rss::{
     Category as RssCategory, Enclosure as RssEnclosure, Guid as RssGuid, Item as RssEntry,
 };
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Entry {
     pub title: Text,
     pub published: Option<DateTime<FixedOffset>>,
@@ -269,5 +269,68 @@ impl From<Entry> for AtomEntry {
             rights: value.rights.map(|s| s.into()),
             extensions,
         }
+    }
+}
+
+impl Default for Entry {
+    fn default() -> Self {
+        Entry {
+            title: Text::default(),
+            published: Option::default(),
+            // At worst set it at epoch time
+            updated: Some(DateTime::<FixedOffset>::from_str("1970-01-01T00:00:00Z").unwrap()),
+            guid: Guid::default(),
+            links: Vec::default(),
+            summary: Option::default(),
+            authors: Vec::default(),
+            feed_authors: Option::default(),
+            categories: Vec::default(),
+            comments: Option::default(),
+            enclosure: Option::default(),
+            source: Option::default(),
+            content: Option::default(),
+            rights: Option::default(),
+            extensions: BTreeMap::default(),
+            itunes_ext: Option::default(),
+            dublin_core_ext: Option::default(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    /*
+    pub fn new_entry() -> Entry {
+        Entry {
+            title: crate::abstractions::text::tests::new_text(),
+            published: None,
+            guid: crate::abstractions::guid::tests::new_guid(),
+            updated: None,
+            links: vec![crate::abstractions::link::tests::new_link()],
+            summary: Some(crate::abstractions::text::tests::new_text()),
+            authors: vec![crate::abstractions::person::tests::new_person()],
+            feed_authors: Some(vec![crate::abstractions::person::tests::new_person()]),
+            categories: vec![crate::abstractions::category::tests::new_category()],
+            comments: Some("comments".into()),
+            enclosure: Some(crate::abstractions::enclosure::tests::new_enclosure()),
+            source: Some(crate::abstractions::source::tests::new_source()),
+        }
+    }
+    */
+
+    #[test]
+    fn default_abstract_to_atom_equal() {
+        let entry1: AtomEntry = Entry::default().into();
+        let entry2 = AtomEntry::default();
+        assert_eq!(entry1, entry2);
+    }
+    #[test]
+    fn default_atom_to_abstract_equal() {
+        let entry1: Entry = AtomEntry::default().into();
+        let entry2 = Entry::default();
+        assert_eq!(entry1, entry2);
     }
 }

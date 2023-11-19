@@ -51,7 +51,7 @@ impl Default for Guid {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     pub fn new_guid() -> Guid {
         Guid {

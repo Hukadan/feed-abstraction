@@ -1,6 +1,6 @@
 use atom_syndication::Link as AtomLink;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Link {
     pub href: String,
     pub rel: String,
@@ -62,5 +62,69 @@ impl From<Link> for AtomLink {
             title: value.title,
             length: value.length,
         }
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+    pub fn new_link() -> Link {
+        Link {
+            href: "Href".into(),
+            rel: "Rel".into(),
+            href_lang: Some("Href lang".into()),
+            mime_type: Some("Mime type".into()),
+            title: Some("Title".into()),
+            length: Some("Length".into()),
+        }
+    }
+    pub fn new_atom_link() -> AtomLink {
+        AtomLink {
+            href: "Href".into(),
+            rel: "Rel".into(),
+            hreflang: Some("Href lang".into()),
+            mime_type: Some("Mime type".into()),
+            title: Some("Title".into()),
+            length: Some("Length".into()),
+        }
+    }
+    #[test]
+    fn default_abstract_to_atom_equal() {
+        let link1: AtomLink = Link::default().into();
+        let link2 = AtomLink::default();
+        assert_eq!(link1, link2);
+    }
+    #[test]
+    fn default_atom_to_abstract_equal() {
+        let link1: Link = AtomLink::default().into();
+        let link2 = Link::default();
+        assert_eq!(link1, link2);
+    }
+    #[test]
+    fn abstract_to_atom_equal() {
+        let link1: AtomLink = new_link().into();
+        let link2 = new_atom_link();
+        assert_eq!(link1, link2);
+    }
+    #[test]
+    fn atom_to_abstract_equal() {
+        let link1: Link = new_atom_link().into();
+        let link2 = new_link();
+        assert_eq!(link1, link2);
+    }
+
+    #[test]
+    fn abstract_to_string_equal() {
+        let per: String = new_link().into();
+        assert_eq!(per, String::from("Href"));
+    }
+    #[test]
+    fn string_to_abstact_equal() {
+        let link1 = Link {
+            href: String::from("Href"),
+            ..Default::default()
+        };
+        let link2: Link = String::from("Href").into();
+        assert_eq!(link1, link2);
     }
 }
