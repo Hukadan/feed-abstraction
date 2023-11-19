@@ -162,6 +162,17 @@ pub(crate) mod tests {
         }
     }
 
+    pub(crate) fn new_source_for_rss() -> Source {
+        Source {
+            title: Some(Text {
+                value: "Title".into(),
+                ..Default::default()
+            }),
+            links: vec!["Href".to_string().into()],
+            ..Default::default()
+        }
+    }
+
     pub(crate) fn new_atom_source() -> AtomSource {
         AtomSource {
             title: crate::abstractions::text::tests::new_atom_text(),
@@ -179,6 +190,13 @@ pub(crate) mod tests {
         }
     }
 
+    pub(crate) fn new_rss_source() -> RssSource {
+        RssSource {
+            url: "Href".into(),
+            title: Some("Title".into()),
+        }
+    }
+
     #[test]
     fn default_abstract_to_rss_equal() {
         let src1: RssSource = Source::default().into();
@@ -189,6 +207,20 @@ pub(crate) mod tests {
     fn default_rss_to_abstract_equal() {
         let src1: Source = RssSource::default().into();
         let src2 = Source::default();
+        assert_eq!(src1, src2);
+    }
+    #[test]
+    fn abstract_to_rss_equal() {
+        let src1: RssSource = new_source_for_rss().into();
+        let src2 = new_rss_source();
+        assert_eq!(src1, src2);
+    }
+    // Rss source as only two fields. Check how to
+    // test this properly
+    #[test]
+    fn rss_to_abstract_equal() {
+        let src1: Source = new_rss_source().into();
+        let src2 = new_source_for_rss();
         assert_eq!(src1, src2);
     }
     #[test]
